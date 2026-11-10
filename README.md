@@ -1,5 +1,23 @@
 # 红果鉴 / 真果鉴
 
+## 本仓库自动同步与下载
+
+本复刻仓库为 [Agonie0v0/guoapp3](https://github.com/Agonie0v0/guoapp3)，追踪 [Topkill/guoapp3 的 main 分支](https://github.com/Topkill/guoapp3/tree/main)。GitHub Actions 每 6 小时检查一次（北京时间 02:23、08:23、14:23、20:23；平台调度可能延迟）。有上游新提交时合并源码，再调用三端构建；没有变化时跳过构建。仓库自己的构建工作流、同步工作流和 Windows 安装模板在同步时保留；其他文件发生无法自动合并的冲突时停止并报告失败，需解决冲突后重新运行。
+
+在 [Actions](https://github.com/Agonie0v0/guoapp3/actions) 中可手动运行 `Sync upstream and build` 检查更新，或运行 `Build app packages` 重新打包当前版本。同步使用仓库内置 `GITHUB_TOKEN` 和可复用工作流，无需长期个人访问令牌。公开仓库连续 60 天没有仓库活动时，GitHub 可能暂停定时工作流，届时需在 Actions 中重新启用。
+
+三个平台、红果鉴与真果鉴两种版本全部构建成功后，自动发布到 [Releases](https://github.com/Agonie0v0/guoapp3/releases/latest)，标签包含源码提交以区分版本号未变化的更新，同时提供 SHA256 校验值。构建过程中的产物也在运行页面保留 14 天。
+
+| 平台 | 下载文件与安装条件 |
+| --- | --- |
+| Android | 已签名 APK，提供 arm64-v8a、armeabi-v7a、x86_64；通常选 arm64-v8a。使用本仓库独立固定证书，后续本仓库版本可覆盖升级。与原作者签名不同，换用本仓库包前需自行备份数据并卸载原作者版本。两个版本沿用同一包名，不能同时安装。 |
+| Windows | `*-windows-x64-setup.exe` 为当前用户安装程序，`*-windows-x64.zip` 为免安装包；支持 Windows 10/11 x64。安装程序未配置 Authenticode 证书。 |
+| iOS | `*-ios-unsigned.ipa` 为未签名真机包，安装前需自行使用 Apple 账号或证书签名。不包含可直接安装的企业签名、TestFlight 或 App Store 发布。 |
+
+Android 签名通过仓库 Secrets `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD` 注入，证书 SHA256 保存在变量 `ANDROID_CERT_SHA256`，构建时强制校验。密钥不得提交到源码，后续构建需持续使用同一证书。
+
+以下为上游原始项目说明和历史验证记录；历史安装包状态不代表本复刻仓库的最新 Actions 结果。
+
 Flutter 多端独立短剧应用，原名“短剧库 APP”。站源请求、解析、下载和播放均在设备上完成，不依赖旧项目或自建服务。当前源码版本：**0.2.16+22（未验证开发快照）**；现有红果鉴 / 真果鉴两份 Android ARM64 Release 安装包仍为 **0.2.15+21**，尚未包含本轮黄剧站源和榜单位置调整。
 
 按用户 2026-09-21 的要求，暂停测试与回归。0.2.16 接入黄剧分类、分页在线搜索、详情与带签名 Cookie 的媒体请求，榜单图标移到顶部标题栏“排序与筛选”后面。本轮仅实施、整理源码格式和收尾同步，未运行静态分析、构建、自动化、设备或真实站源验证。0.2.15 两版 Android 构建与安装包检查记录保留。

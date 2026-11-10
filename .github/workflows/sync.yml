@@ -1,0 +1,65 @@
+name: Sync upstream and build
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      changed: ${{ steps.merge.outputs.changed }}
+      sha: ${{ steps.merge.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Merge Topkill/guoapp3
+        id: merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/Topkill/guoapp3.git
+          git fetch --no-tags upstream main
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'No upstream changes.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git merge --no-ff --no-commit upstream/main; then
+            echo 'Resolving repository automation files; source conflicts will stop the sync.'
+          fi
+          git restore --source=HEAD --staged --worktree -- \
+            .github/workflows/build.yml .github/workflows/sync.yml \
+            scripts/windows_installer.iss
+          if [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+            git diff --name-only --diff-filter=U
+            echo 'Source merge conflict. Resolve it on main before syncing again.' >&2
+            git merge --abort
+            exit 1
+          fi
+          git commit -m "chore: sync Topkill/guoapp3 at $(git rev-parse --short upstream/main)"
+          git push origin HEAD:main
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Merged upstream $(git rev-parse upstream/main); starting all platform builds." >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    needs: sync
+    if: needs.sync.outputs.changed == 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      source_ref: ${{ needs.sync.outputs.sha }}
+    secrets: inherit
