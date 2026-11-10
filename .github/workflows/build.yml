@@ -212,7 +212,7 @@ jobs:
 
   ios:
     needs: checks
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 60
     strategy:
       fail-fast: false
